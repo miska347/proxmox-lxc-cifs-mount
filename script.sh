@@ -56,6 +56,35 @@ show_existing_cifs() {
     else
         echo "  (unable to query mount state)"
     fi
+
+    echo
+    echo "- Autofs control mounts (if any):"
+    if mount | awk '/ type autofs / {printf "  %-30s on %-30s\n", $1, $3} END{if(NR==0) print "  (none)"}'; then
+        :
+    else
+        echo "  (unable to query autofs state)"
+    fi
+
+    echo
+    echo "- Autofs CIFS maps configured by this script:"
+    found=0
+    for master in /etc/auto.master.d/proxmox-lxc-cifs-*.autofs; do
+        [ -f "$master" ] || continue
+        map_file=$(awk 'NF>=2 {print $2; exit}' "$master")
+        [ -f "$map_file" ] || continue
+        while IFS= read -r mline; do
+            [ -z "$mline" ] && continue
+            case "$mline" in \#*) continue ;; esac
+            mp=$(echo "$mline" | awk '{print $1}')
+            share=$(echo "$mline" | awk '{print $3}')
+            share=${share#:}
+            printf "  %-30s -> %-30s  [map: %s]\n" "$mp" "$share" "$map_file"
+            found=1
+        done < "$map_file"
+    done
+    if [ "$found" = 0 ]; then
+        echo "  (none)"
+    fi
 }
 
 next_mp_index() {
