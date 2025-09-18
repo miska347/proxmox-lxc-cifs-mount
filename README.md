@@ -7,6 +7,6 @@
  - It will display existing CIFS mounts from /etc/fstab and currently mounted CIFS filesystems before asking what to do.
  - It allows you to skip creating the host mount if it already exists, and go straight to binding a subdirectory into an LXC container.
  - It chooses the next available mpX entry in the LXC config so multiple binds can be added without overwriting existing ones.
-- You can export and import host mount definitions between nodes using the script menu. Exports include base64-encoded credentials so the target node can recreate identical mounts without additional prompts.
+- NOT TESTED!! You can export and import host mount definitions between nodes using the script menu. Exports include base64-encoded credentials so the target node can recreate identical mounts without additional prompts.
 
 ``bash <(curl -s https://raw.githubusercontent.com/miska347/proxmox-lxc-cifs-mount/refs/heads/main/script.sh)``
