@@ -18,6 +18,9 @@ set -Eeuo pipefail
 #   straight to binding a subdirectory into an LXC container.
 # - It chooses the next available mpX entry in the LXC config so multiple binds
 #   can be added without overwriting existing ones.
+# - You can export and import host mount definitions between nodes using the script 
+#   menu. Exports include base64-encoded credentials so the target node can recreate 
+#   identical mounts without additional prompts.
 # =========================================
 
 echo "===== Proxmox LXC CIFS Bind Mount Automation ====="
