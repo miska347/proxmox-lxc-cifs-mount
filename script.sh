@@ -8,6 +8,8 @@ set -Eeuo pipefail
 # - Goal: Maintain a single CIFS mount on the Proxmox host to the root NAS
 #   share (for example "//10.0.0.x/main"), and bind only specific folders
 #   under that host mount into one or more LXC containers.
+# - Autofs is supported as an optional host mount mechanism for on-demand
+#   mounting and automatic reconnection when the NAS link drops.
 # - This script is interactive, idempotent, and uses a credentials file for CIFS
 #   so passwords are not stored directly in /etc/fstab.
 # - It will display existing CIFS mounts from /etc/fstab and currently mounted
