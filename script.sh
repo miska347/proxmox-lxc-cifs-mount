@@ -88,6 +88,13 @@ create_credentials_file() {
     printf "username=%s\npassword=%s\n" "$user" "$pass" > "$cred_path"
 }
 
+create_credentials_file_from_b64() {
+    local cred_path="$1"; local b64="$2"
+    echo "- Writing credentials file from export: $cred_path"
+    umask 077
+    printf "%s" "$b64" | base64 -d > "$cred_path"
+}
+
 detect_autofs() {
     command -v automount >/dev/null 2>&1
 }
@@ -161,11 +168,17 @@ export_host_mounts() {
         mp=$(echo "$line" | awk '{print $2}')
         cred=$(echo "$line" | sed -n 's/.*credentials=\([^, ]*\).*/\1/p')
         name=$(basename "$cred" | sed 's/^\.cifs-credentials-//')
+        if [ -f "$cred" ]; then
+            cred_b64=$(base64 -w0 "$cred" 2>/dev/null || base64 "$cred" | tr -d '\n')
+        else
+            cred_b64=""
+        fi
         echo "BEGIN"
         echo "method=fstab"
         echo "nas_share=$nas"
         echo "host_mount=$mp"
         echo "cred_name=$name"
+        [ -n "$cred_b64" ] && echo "cred_b64=$cred_b64"
         echo "END"
     done
 
@@ -183,11 +196,17 @@ export_host_mounts() {
             share=${share#:}
             cred=$(echo "$opts" | sed -n 's/.*credentials=\([^, ]*\).*/\1/p')
             name=$(basename "$cred" | sed 's/^\.cifs-credentials-//')
+            if [ -f "$cred" ]; then
+                cred_b64=$(base64 -w0 "$cred" 2>/dev/null || base64 "$cred" | tr -d '\n')
+            else
+                cred_b64=""
+            fi
             echo "BEGIN"
             echo "method=autofs"
             echo "nas_share=$share"
             echo "host_mount=$mp"
             echo "cred_name=$name"
+            [ -n "$cred_b64" ] && echo "cred_b64=$cred_b64"
             echo "END"
         done < "$map_file"
     done
@@ -205,18 +224,22 @@ import_host_mounts() {
     done
     # - Parse blocks
     awk 'BEGIN{inb=0}
-         /^BEGIN$/ {inb=1; method=""; nas=""; mp=""; cred=""; next}
-         /^END$/ {inb=0; if(nas!="" && mp!=""){ printf "%s\t%s\t%s\t%s\n", method,nas,mp,cred }}
-         {if(inb){ split($0,a,"="); k=a[1]; v=substr($0,length(k)+2); if(k=="method") method=v; else if(k=="nas_share") nas=v; else if(k=="host_mount") mp=v; else if(k=="cred_name") cred=v; }}' "$tmp" | \
-    while IFS=$'\t' read -r method nas mp cred; do
+         /^BEGIN$/ {inb=1; method=""; nas=""; mp=""; cred=""; b64=""; next}
+         /^END$/ {inb=0; if(nas!="" && mp!=""){ printf "%s\t%s\t%s\t%s\t%s\n", method,nas,mp,cred,b64 }}
+         {if(inb){ split($0,a,"="); k=a[1]; v=substr($0,length(k)+2); if(k=="method") method=v; else if(k=="nas_share") nas=v; else if(k=="host_mount") mp=v; else if(k=="cred_name") cred=v; else if(k=="cred_b64") b64=v; }}' "$tmp" | \
+    while IFS=$'\t' read -r method nas mp cred cred_b64; do
         [ -z "$nas" ] && continue
         ensure_dir "$mp"
         CRED_PATH="/root/.cifs-credentials-${cred}"
         echo
         echo "- Importing $method mount: $nas -> $mp"
-        read -p "NAS username for ${nas}: " NAS_USER
-        read -sp "NAS password for ${nas}: " NAS_PASS; echo
-        create_credentials_file "$CRED_PATH" "$NAS_USER" "$NAS_PASS"
+        if [ -n "${cred_b64:-}" ]; then
+            create_credentials_file_from_b64 "$CRED_PATH" "$cred_b64"
+        else
+            read -p "NAS username for ${nas}: " NAS_USER
+            read -sp "NAS password for ${nas}: " NAS_PASS; echo
+            create_credentials_file "$CRED_PATH" "$NAS_USER" "$NAS_PASS"
+        fi
         if [ "$method" = "autofs" ]; then
             setup_autofs_mount "$nas" "$mp" "$CRED_PATH" "$cred" || echo "- Failed to configure autofs for $mp"
         else
