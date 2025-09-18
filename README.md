@@ -1,5 +1,5 @@
 # proxmox-lxc-cifs-mount
-AI generated bash script to mount CIFS to LXC container in Proxmox. Based on TheHellSite's guide: https://forum.proxmox.com/threads/tutorial-unprivileged-lxcs-mount-cifs-shares.101795/
+**AI generated** bash script to mount CIFS to LXC container in Proxmox. Based on TheHellSite's guide: https://forum.proxmox.com/threads/tutorial-unprivileged-lxcs-mount-cifs-shares.101795/
 
  - Goal: Maintain a single CIFS mount on the Proxmox host to the root NAS share (for example "//10.0.0.x/main"), and bind only specific folders under that host mount into one or more LXC containers.
  - Autofs is supported as an optional host mount mechanism for on-demand mounting and automatic reconnection when the NAS link drops.
